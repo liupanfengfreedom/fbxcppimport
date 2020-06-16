@@ -11,6 +11,8 @@
 #include "LevelEditor.h"
 #include "AssetImportTask.h"
 #include "Factories/FbxImportUI.h"
+#include "Factories/FbxAnimSequenceImportData.h"
+#include "Misc/DateTime.h"
 static const FName EditorToolbarTabName("EditorToolbar");
 
 #define LOCTEXT_NAMESPACE "FEditorToolbarModule"
@@ -59,14 +61,6 @@ void FEditorToolbarModule::ShutdownModule()
 
 void FEditorToolbarModule::PluginButtonClicked()
 {
-
-	// Put your "OnButtonClicked" stuff here
-	//FText DialogText = FText::Format(
-	//						LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
-	//						FText::FromString(TEXT("FEditorToolbarModule::PluginButtonClicked()")),
-	//						FText::FromString(TEXT("EditorToolbar.cpp"))
-	//				   );
-	//FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	TArray<FString> ImportFiles;
 	ImportFiles.Add("D:\\xujie\\untitled.fbx");
@@ -96,23 +90,57 @@ void FEditorToolbarModule::PluginButtonClicked()
 	aaid->DestinationPath = RootDestinationPath;
 	aaid->ImportGroupJsonData = ImportGroups;
 	//AssetToolsModule.Get().ImportAssetsAutomated(aaid);
+#define ANIMATION
 
 	UAssetImportTask* ait = NewObject<UAssetImportTask>();
-	ait->Filename = "D:\\xujie\\untitled.fbx";
+#ifdef ANIMATION
+	ait->Filename = "D:\\xujie\\tmp.fbx";
+	ait->DestinationPath = "/Game/skeletonmesh/animation";
+	ait->DestinationName = "anim" + FDateTime::Now().ToString();
+#else
+	ait->Filename = "D:\\xujie\\ellie_rig.fbx";
 	ait->DestinationPath = "/Game/skeletonmesh";
-	ait->DestinationName = "123";
+	//ait->DestinationName = "skeleton";
+#endif 
+
 	ait->bReplaceExisting = true;
 	ait->bAutomated = true;
 	ait->bSave = true;
 	UFbxImportUI * Fbxui = NewObject<UFbxImportUI>();
+
+#ifdef ANIMATION
+	Fbxui->bImportMesh = false;
+	Fbxui->bImportAnimations = true;
+	UFbxAnimSequenceImportData* Fbxanimdata = NewObject<UFbxAnimSequenceImportData>();
+	Fbxanimdata->AnimationLength = EFBXAnimationLengthImportType::FBXALIT_AnimatedKey;
+	Fbxui->AnimSequenceImportData = Fbxanimdata;
+	FString skeletonpath = "Skeleton'/Game/skeletonmesh/ellie_rig_Skeleton.ellie_rig_Skeleton'";
+	Fbxui->Skeleton=LoadObject<USkeleton>(nullptr, *skeletonpath);
+#else
+	Fbxui->bImportMesh = true;
 	Fbxui->bImportAsSkeletal = true;
+	Fbxui->bImportAnimations = false;
+	Fbxui->bImportMaterials = false;
 	Fbxui->MeshTypeToImport = (EFBXImportType)1;
 	Fbxui->OriginalImportType = (EFBXImportType)1;
 	Fbxui->bAutomatedImportShouldDetectType = false;
+#endif 
+
+
+
 	ait->Options = Fbxui;
 	TArray<UAssetImportTask*>aitarray;
 	aitarray.Add(ait);
 	AssetToolsModule.Get().ImportAssetTasks(aitarray);
+
+
+	//// Put your "OnButtonClicked" stuff here
+	//FText DialogText = FText::Format(
+	//						LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
+	//						FText::FromString(TEXT("FEditorToolbarModule::PluginButtonClicked()")),
+	//						FText::FromString(TEXT("EditorToolbar.cpp"))
+	//				   );
+	//FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 }
 
 void FEditorToolbarModule::AddMenuExtension(FMenuBuilder& Builder)
